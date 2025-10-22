@@ -1,7 +1,8 @@
 import streamlit as st
 from PIL import Image, ImageOps
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
+st.write("App loaded without TensorFlow!") 
 import gdown
 import os
 
@@ -52,4 +53,5 @@ if uploaded_file:
     confidence = pred if pred >= 0.5 else 1 - pred
     
     st.write(f"**Prediction:** {label} ({confidence*100:.2f}% confidence)")
+
 
