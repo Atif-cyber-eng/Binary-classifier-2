@@ -1,16 +1,18 @@
 import streamlit as st
 from PIL import Image, ImageOps
 import numpy as np
-#import tensorflow as tf
-st.write("App loaded without TensorFlow!") 
+import tensorflow as tf
+import gdown
 import os
 
+st.write("App loaded!")
+
 # Google Drive model file ID
-FILE_ID = "1nrKIqWYbMVKoTneEL3TBrrvhCIiN1jCT"
-MODEL_PATH = "fruits_cnn.h5"
+FILE_ID = "1zZC_oG-4eFq9JpT4-JDDdd81xrHOv-fR"
+MODEL_PATH = "fruit_classifier_model.keras"
 IMG_SIZE = (224, 224)
 
-# Download model from Google Drive if not already present
+# Download model if not present
 if not os.path.exists(MODEL_PATH):
     st.write("⏳ Downloading model from Google Drive...")
     url = f"https://drive.google.com/uc?id={FILE_ID}"
@@ -19,19 +21,15 @@ if not os.path.exists(MODEL_PATH):
 
 @st.cache_resource
 def load_model(path):
-    """Loads the TensorFlow model with caching."""
     return tf.keras.models.load_model(path)
 
 def preprocess_image(image, target_size):
-    """Preprocesses the uploaded image."""
     image = image.convert("RGB")
-    # Use Image.LANCZOS instead of the deprecated Image.ANTIALIAS
-    image = ImageOps.fit(image, target_size, Image.LANCZOS) 
+    image = ImageOps.fit(image, target_size, Image.LANCZOS)
     arr = np.asarray(image) / 255.0
     arr = np.expand_dims(arr, axis=0)
     return arr
 
-# Streamlit UI
 st.title("🍎 Apple vs 🥭 Mango Classifier")
 
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
@@ -40,19 +38,11 @@ if uploaded_file:
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded image", use_column_width=True)
 
-    # Preprocess the image
     arr = preprocess_image(image, IMG_SIZE)
-    
-    # Load model and predict
     model = load_model(MODEL_PATH)
     pred = model.predict(arr)[0][0]
 
-    # Display results
     label = "Mango 🥭" if pred >= 0.5 else "Apple 🍎"
     confidence = pred if pred >= 0.5 else 1 - pred
-    
+
     st.write(f"**Prediction:** {label} ({confidence*100:.2f}% confidence)")
-
-
-
-
