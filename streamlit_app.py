@@ -1,48 +1,58 @@
 import streamlit as st
-import tensorflow as tf
-import gdown, os, zipfile
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
+#import tensorflow as tf
+st.write("App loaded without TensorFlow!") 
+import gdown
+import os
 
-st.set_page_config(page_title="Apple vs Mango Classifier 🍎🥭")
+# Google Drive model file ID
+FILE_ID = "1nrKIqWYbMVKoTneEL3TBrrvhCIiN1jCT"
+MODEL_PATH = "fruits_cnn.h5"
+IMG_SIZE = (224, 224)
+
+# Download model from Google Drive if not already present
+if not os.path.exists(MODEL_PATH):
+    st.write("⏳ Downloading model from Google Drive...")
+    url = f"https://drive.google.com/uc?id={FILE_ID}"
+    gdown.download(url, MODEL_PATH, quiet=False)
+    st.success("✅ Model downloaded successfully!")
 
 @st.cache_resource
-def load_model():
-    FILE_ID = "1nrKIqWYbMVKoTneEL3TBrrvhCIiN1jCT"
-    
-    MODEL_DIR = "fruits_cnn.h5"
+def load_model(path):
+    """Loads the TensorFlow model with caching."""
+    return tf.keras.models.load_model(path)
 
-    if not os.path.exists(MODEL_DIR):
-        st.info("📦 Downloading model from Google Drive...")
-        url = f"https://drive.google.com/uc?id={FILE_ID}"
-        gdown.download(url, ZIP_FILE, quiet=False)
-        with zipfile.ZipFile(ZIP_FILE, "r") as zip_ref:
-            zip_ref.extractall(".")
-        st.success("✅ Model extracted!")
+def preprocess_image(image, target_size):
+    """Preprocesses the uploaded image."""
+    image = image.convert("RGB")
+    # Use Image.LANCZOS instead of the deprecated Image.ANTIALIAS
+    image = ImageOps.fit(image, target_size, Image.LANCZOS) 
+    arr = np.asarray(image) / 255.0
+    arr = np.expand_dims(arr, axis=0)
+    return arr
 
-    model = tf.keras.models.load_model(MODEL_DIR)
-    return model
+# Streamlit UI
+st.title("🍎 Apple vs 🥭 Mango Classifier")
 
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
-st.title("🍎🥭 Fruit Classifier (Apple vs Mango)")
-
-model = load_model()
-
-# Upload image
-uploaded_file = st.file_uploader("Upload an image of a fruit...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert("RGB")
+if uploaded_file:
+    image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded image", use_column_width=True)
 
-    # Preprocess
-    img = image.resize((150, 150))
-    img_array = np.expand_dims(np.array(img) / 255.0, axis=0)
+    # Preprocess the image
+    arr = preprocess_image(image, IMG_SIZE)
+    
+    # Load model and predict
+    model = load_model(MODEL_PATH)
+    pred = model.predict(arr)[0][0]
 
-    # Predict
-    preds = model.predict(img_array)
-    label = "Mango 🥭" if preds[0][0] > 0.5 else "Apple 🍎"
+    # Display results
+    label = "Mango 🥭" if pred >= 0.5 else "Apple 🍎"
+    confidence = pred if pred >= 0.5 else 1 - pred
+    
+    st.write(f"**Prediction:** {label} ({confidence*100:.2f}% confidence)")
 
-    st.success(f"Prediction: **{label}** (Confidence: {preds[0][0]:.2f})")
-else:
-    st.info("Please upload an image to classify.")
+
+
