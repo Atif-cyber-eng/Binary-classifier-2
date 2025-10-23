@@ -2,8 +2,7 @@ import streamlit as st
 from PIL import Image, ImageOps
 import numpy as np
 
-import gdown
-import os
+
 
 st.write("App loaded!")
 
@@ -46,4 +45,5 @@ if uploaded_file:
     confidence = pred if pred >= 0.5 else 1 - pred
 
     st.write(f"**Prediction:** {label} ({confidence*100:.2f}% confidence)")
+
 
